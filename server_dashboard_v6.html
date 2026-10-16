@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Server Admin: Max Edition</title>
+<style>
+:root{--bg:#0b0f15;--panel:#121822;--card:#161d2a;--border:#2a3445;--text:#c9d1d9;--muted:#8b9bb4;--green:#3ddc84;--yellow:#fbb829;--red:#f07178;--blue:#53cef5;--purple:#b388ff;--orange:#ff8a65;}
+*{box-sizing:border-box;}
+body{margin:0;padding:10px;background:var(--bg);color:var(--text);font-family:'Segoe UI',Roboto,sans-serif;font-size:13px;}
+.dashboard{max-width:1500px;margin:0 auto;}
+.topbar{display:flex;align-items:center;gap:16px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:12px;flex-wrap:wrap;}
+.topbar h1{margin:0;color:#fff;font-weight:600;font-size:18px;}
+.balance{color:var(--green);font-weight:bold;font-size:15px;}
+.level-badge{background:var(--purple);padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;color:#fff;}
+.xp-wrap{flex:1;min-width:150px;max-width:300px;}
+.xp-bar{height:6px;background:#252e40;border-radius:3px;overflow:hidden;}
+.xp-fill{height:100%;background:var(--purple);width:0%;transition:width .4s;}
+.btn{background:#2a3445;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;}
+.btn:hover{background:#34415a;}
+.btn.danger{border-color:var(--red);color:var(--red);}
+.grid-main{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;align-items:start;}
+@media(max-width:1000px){.grid-main{grid-template-columns:1fr;}}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;}
+.panel h3{margin:0 0 8px 0;color:#fff;font-size:14px;}
+.sys-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;cursor:pointer;}
+.sys-card.selected{border-color:var(--blue);box-shadow:0 0 8px rgba(83,206,245,.3);}
+.sys-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap;}
+.sys-name{font-weight:600;color:#fff;font-size:14px;}
+.specs{color:var(--muted);font-size:11px;line-height:1.5;}
+.meter-row{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;}
+.meter{flex:1;min-width:100px;}
+.meter-label{font-size:11px;color:var(--muted);margin-bottom:3px;display:flex;justify-content:space-between;}
+.bar-bg{width:100%;height:6px;background:#252e40;border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;width:0%;transition:width .6s ease,background .3s;}
+.rack{perspective:600px;margin:10px auto;width:170px;height:170px;position:relative;}
+.rack-inner{position:absolute;inset:0;transform:rotateX(18deg) rotateY(-14deg);transform-style:preserve-3d;transition:transform .3s;}
+.rack:hover .rack-inner{transform:rotateX(10deg) rotateY(0deg);}
+.unit{position:absolute;left:0;width:100%;height:30px;background:#1a2230;border:1px solid #334257;border-radius:3px;box-shadow:inset 0 0 6px rgba(0,0,0,.5);}
+.u1{top:0;}.u2{top:34px;}.u3{top:68px;}.u4{top:102px;}.u5{top:136px;}
+.led{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);transition:background .5s,box-shadow .5s;}
+.fan{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:18px;height:18px;border:2px solid #556;border-radius:50%;animation:spin 1.5s linear infinite;}
+@keyframes spin{from{transform:translateY(-50%) rotate(0deg);}to{transform:translateY(-50%) rotate(360deg);}}
+.drive{position:absolute;left:36px;right:40px;top:50%;transform:translateY(-50%);height:4px;background:#0d1320;border-radius:2px;overflow:hidden;}
+.drive-bit{position:absolute;top:0;width:14px;height:100%;background:var(--blue);opacity:.8;animation:blink 1.2s infinite;}
+@keyframes blink{0%,100%{opacity:.15;}50%{opacity:.85;}}
+.console{background:#0a0e14;border:1px solid var(--border);border-radius:6px;padding:10px;height:170px;overflow-y:auto;font-family:Consolas,monospace;font-size:12px;color:var(--green);}
+.console .p{color:var(--blue);}
+.console .err{color:var(--red);}
+.console .warn{color:var(--yellow);}
+.console .info{color:var(--muted);}
+.console-input{width:100%;margin-top:6px;background:#0a0e14;border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:Consolas,monospace;padding:6px 8px;outline:none;}
+.shop-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.shop-tab{padding:5px 10px;border-radius:6px;background:#1a2230;border:1px solid var(--border);cursor:pointer;font-size:12px;}
+.shop-tab.active{background:var(--blue);color:#06121a;border-color:var(--blue);font-weight:600;}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+.item-card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:4px;}
+.item-card.owned{border-color:var(--green);}
+.item-card.locked{opacity:.45;}
+.item-name{font-weight:600;font-size:12px;color:#fff;}
+.item-price{color:var(--yellow);font-size:12px;}
+.item-old{color:var(--muted);text-decoration:line-through;font-size:11px;margin-right:5px;}
+.item-desc{color:var(--muted);font-size:10px;line-height:1.3;flex:1;}
+.task-list{display:flex;flex-direction:column;gap:8px;}
+.task-card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 10px;}
+.task-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+.task-name{font-weight:600;color:#fff;}
+.task-meta{color:var(--yellow);font-size:11px;}
+.task-rec{color:var(--blue);font-size:11px;margin-top:4px;}
+.task-req-bad{color:var(--red);font-size:11px;margin-top:3px;}
+.task-prog{margin-top:6px;}
+.active-task{background:#1a2230;border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin-bottom:6px;}
+.upg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;}
+.promo-row{display:flex;gap:8px;margin-top:8px;}
+.promo-row input{flex:1;background:#0a0e14;border:1px solid var(--border);border-radius:4px;color:var(--text);padding:6px 8px;outline:none;font-family:Consolas,monospace;}
+.flash{animation:flash .8s;}
+@keyframes flash{0%{background:#3ddc8433;}100%{background:transparent;}}
+.warn-line{color:var(--yellow);font-size:11px;margin-top:4px;}
+.status-ok{color:var(--green);}.status-warn{color:var(--yellow);}.status-err{color:var(--red);}
+</style>
+</head>
+<body>
+<div class="dashboard">
+  <div class="topbar">
+    <h1>&#128421; Server Admin</h1>
+    <div>Баланс: <span class="balance" id="balance"></span></div>
+    <div class="level-badge" id="levelBadge"></div>
+    <div class="xp-wrap"><div style="font-size:11px;color:var(--muted);margin-bottom:3px;"><span id="xpText"></span></div><div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div></div>
+    <div id="discountInfo" style="font-size:11px;color:var(--orange);"></div>
+    <button class="btn" id="addSysBtn">+ Система (5 000 &#8381;)</button>
+    <button class="btn danger" id="resetBtn">Сбросить прогресс</button>
+  </div>
+
+  <div class="grid-main">
+    <div id="systemsCol"></div>
+    <div id="rightCol">
+      <div class="panel">
+        <h3>&#128187; Консоль</h3>
+        <div class="console" id="consoleOut"></div>
+        <input class="console-input" id="consoleIn" placeholder="Введите команду (help)">
+      </div>
+
+      <div class="panel">
+        <h3>&#128640; Задачи</h3>
+        <div id="activeTasks"></div>
+        <div class="task-list" id="taskOptions"></div>
+      </div>
+
+      <div class="panel">
+        <h3>&#11014; Апгрейды</h3>
+        <div class="upg-grid" id="upgGrid"></div>
+      </div>
+
+      <div class="panel">
+        <h3>&#128722; Магазин <span id="shopTarget" style="color:var(--muted);font-size:11px;"></span></h3>
+        <div class="shop-tabs" id="shopTabs"></div>
+        <div class="shop-grid" id="shopGrid"></div>
+        <div class="promo-row">
+          <input id="promoInput" placeholder="Промокод...">
+          <button class="btn" id="promoBtn">Применить</button>
+        </div>
+        <button class="btn" id="promoListBtn" style="margin-top:8px;">Список промокодов</button>
+        <div id="promoOut" style="margin-top:6px;font-size:12px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+// ================= ДАННЫЕ =================
+const SHOP = {
+cpu:[
+{n:'Pentium G4560',c:3000,p:1,l:1,d:'2 ядра, дедушка, но работает'},
+{n:'Core i3-10100F',c:5500,p:2,l:1,d:'4 ядра, рабочий старт'},
+{n:'Core i5-10400',c:9000,p:2.5,l:1,d:'6 ядер, золотая середина'},
+{n:'Ryzen 5 5600X',c:14000,p:3,l:2,d:'6 ядер Zen 3'},
+{n:'Core i7-11700',c:19000,p:3.5,l:2,d:'8 ядер Comet Lake'},
+{n:'Ryzen 7 5800X',c:24000,p:4,l:3,d:'8 ядер Zen 3'},
+{n:'Ryzen 9 5900X',c:32000,p:4.5,l:3,d:'12 ядер'},
+{n:'Core i9-12900K',c:42000,p:5,l:4,d:'16 ядер Alder Lake'},
+{n:'Ryzen 9 7950X',c:58000,p:6,l:4,d:'16 ядер Zen 4'},
+{n:'Threadripper 3960X',c:90000,p:7,l:5,d:'24 ядра HEDT'},
+{n:'EPYC Milan 32C',c:140000,p:8,l:5,d:'32 ядра сервер'},
+{n:'EPYC Genoa 64C',c:200000,p:9,l:6,d:'64 ядра Zen 4'},
+{n:'EPYC Bergamo 128C',c:280000,p:9.5,l:6,d:'128 ядер облачных'},
+{n:'EPYC Turin 96C',c:340000,p:9.8,l:7,d:'96 ядер Zen 5'},
+{n:'EPYC Turin 192C',c:480000,p:10,l:7,d:'192 ядра, монстр'}],
+gpu:[
+{n:'GT 1030',c:4000,p:1,l:1,d:'Первый шаг в графику'},
+{n:'GTX 1050 Ti',c:7000,p:1.5,l:1,d:'скромно, но честно'},
+{n:'Radeon RX 580',c:9500,p:2,l:1,d:'классика майнинга'},
+{n:'GTX 1660 Super',c:15000,p:3,l:2,d:'1080p без компромиссов'},
+{n:'RTX 2060',c:19000,p:3.5,l:2,d:'первый RTX'},
+{n:'RTX 3060',c:26000,p:4,l:3,d:'12 ГБ VRAM'},
+{n:'RTX 3070',c:36000,p:4.5,l:3,d:'1440p-монстр'},
+{n:'RTX 3080',c:48000,p:5,l:4,d:'4K-класс'},
+{n:'RTX 3090',c:68000,p:5.5,l:4,d:'24 ГБ VRAM'},
+{n:'RTX 4070 Ti',c:80000,p:6,l:5,d:'Ada Lovelace'},
+{n:'RTX 4080',c:105000,p:7,l:5,d:'топ без лишнего'},
+{n:'RTX 4090',c:150000,p:8,l:6,d:'флагман Ada'},
+{n:'RTX 6000 Ada',c:260000,p:9,l:7,d:'рабочая станция'},
+{n:'H200 NVL',c:420000,p:10,l:8,d:'141 ГБ HBM3e, ИИ-зверь'}],
+ram:[
+{n:'8 ГБ DDR4',c:3500,gb:8,l:1,d:'минимум'},
+{n:'16 ГБ DDR4',c:6000,gb:16,l:1,d:'норм'},
+{n:'24 ГБ DDR4',c:8500,gb:24,l:2,d:'странный, но дешёвый'},
+{n:'32 ГБ DDR4',c:12000,gb:32,l:2,d:'для серверов мелких'},
+{n:'32 ГБ DDR5',c:16000,gb:32,l:3,d:'быстрая память'},
+{n:'64 ГБ DDR4 ECC',c:22000,gb:64,l:3,d:'серверная планка'},
+{n:'64 ГБ DDR5',c:26000,gb:64,l:3,d:'для тяжёлых задач'},
+{n:'96 ГБ DDR5',c:34000,gb:96,l:4,d:'нестандартный объём'},
+{n:'128 ГБ DDR4 ECC',c:48000,gb:128,l:4,d:'виртуализация'},
+{n:'192 ГБ DDR5 ECC',c:72000,gb:192,l:5,d:'СУБД и рендер-парки'},
+{n:'256 ГБ DDR5 ECC',c:110000,gb:256,l:6,d:'всё сразу'},
+{n:'512 ГБ DDR5 ECC',c:190000,gb:512,l:7,d:'облачный масштаб'},
+{n:'1 ТБ DDR5 ECC',c:340000,gb:1024,l:8,d:'суперкомпьютер'}],
+psu:[
+{n:'450W Bronze',c:3000,w:450,l:1,d:'для старта'},
+{n:'550W Bronze',c:4200,w:550,l:1,d:'чуть лучше'},
+{n:'650W Gold',c:6000,w:650,l:2,d:'надёжный середняк'},
+{n:'750W Gold',c:8000,w:750,l:2,d:'запас есть'},
+{n:'850W Platinum',c:11000,w:850,l:3,d:'эффективный'},
+{n:'1000W Gold',c:14000,w:1000,l:3,d:'под RTX 3080+'},
+{n:'1200W Titanium',c:19000,w:1200,l:4,d:'флагманский'},
+{n:'1600W Titanium',c:26000,w:1600,l:5,d:'для двух GPU'},
+{n:'2000W Titanium',c:34000,w:2000,l:5,d:'ферма в одном БП'},
+{n:'2400W Titanium',c:44000,w:2400,l:6,d:'серверный'},
+{n:'2800W Titanium',c:58000,w:2800,l:7,d:'EPYC-класс'},
+{n:'3200W Titanium',c:76000,w:3200,l:8,d:'последний аргумент'}],
+nic:[
+{n:'1 Гбит/с',c:1500,sp:1,l:1,d:'базовый интернет'},
+{n:'2.5 Гбит/с',c:2800,sp:2.5,l:1,d:'домашний апгрейд'},
+{n:'5 Гбит/с',c:4500,sp:5,l:2,d:'уже приятно'},
+{n:'10 Гбит/с',c:8000,sp:10,l:2,d:'серверный минимум'},
+{n:'25 Гбит/с',c:22000,sp:25,l:3,d:'ЦОД-класс'},
+{n:'40 Гбит/с',c:32000,sp:40,l:4,d:'InfiniBand-свет'},
+{n:'100 Гбит/с',c:60000,sp:100,l:5,d:'магистраль'},
+{n:'200 Гбит/с',c:95000,sp:200,l:6,d:'быстро не значит дёшево'},
+{n:'400 Гбит/с',c:150000,sp:400,l:7,d:'CDN-уровень'},
+{n:'800 Гбит/с',c:260000,sp:800,l:8,d:'интернет-магистраль'}],
+ssd:[
+{n:'240 ГБ SATA',c:2500,tb:0.24,l:1,d:'системный'},
+{n:'500 ГБ SATA',c:4000,tb:0.5,l:1,d:'просторнее'},
+{n:'500 ГБ NVMe',c:5500,tb:0.5,l:2,d:'быстрый'},
+{n:'1 ТБ NVMe',c:9000,tb:1,l:2,d:'золотой стандарт'},
+{n:'2 ТБ NVMe',c:17000,tb:2,l:3,d:'для баз данных'},
+{n:'4 ТБ NVMe',c:30000,tb:4,l:4,d:'большой и быстрый'},
+{n:'8 ТБ SATA',c:42000,tb:8,l:4,d:'архив'},
+{n:'8 ТБ NVMe',c:58000,tb:8,l:5,d:'серверный NVMe'},
+{n:'15 ТБ SATA',c:70000,tb:15,l:6,d:'хранилище'},
+{n:'15 ТБ NVMe',c:95000,tb:15,l:6,d:'всё в NVMe'},
+{n:'30 ТБ NVMe',c:170000,tb:30,l:7,d:'ЦОД-диск'},
+{n:'60 ТБ NVMe',c:320000,tb:60,l:8,d:'ничего себе'}],
+cooling:[
+{n:'Боксовый кулер',c:0,f:1.0,t:'air',l:1,d:'что было в коробке'},
+{n:'Air Cooler 92mm',c:1800,f:0.96,t:'air',l:1,d:'тихий башенный'},
+{n:'Air Cooler Tower 120',c:3500,f:0.92,t:'air',l:2,d:'две башни, шесть трубок'},
+{n:'Air Cooler Dual 140',c:6000,f:0.88,t:'air',l:3,d:'двухсекционная башня'},
+{n:'AIO 240mm',c:9000,f:0.84,t:'water',l:3,d:'водянка: радиатор 240'},
+{n:'AIO 280mm',c:13000,f:0.80,t:'water',l:4,d:'водянка: радиатор 280'},
+{n:'AIO 360mm',c:18000,f:0.76,t:'water',l:4,d:'водянка: радиатор 360'},
+{n:'AIO 420mm',c:26000,f:0.72,t:'water',l:5,d:'большая водянка'},
+{n:'Custom Loop 2x360',c:45000,f:0.64,t:'water',l:6,d:'кастомный контур на 2 секции'},
+{n:'Custom Loop 3x480',c:85000,f:0.55,t:'water',l:7,d:'кастом на 3 секции: полный контроль'}],
+av:[
+{n:'NoGuard Free',c:0,br:0.1,l:1,d:'лучше, чем ничего'},
+{n:'DefinIT Basic',c:5000,br:0.3,l:1,d:'база'},
+{n:'ShieldOne Std',c:12000,br:0.45,l:2,d:'стандарт'},
+{n:'KavAnt Pro',c:20000,br:0.55,l:3,d:'про-версия'},
+{n:'SentinelPlus',c:32000,br:0.65,l:4,d:'с поведенческим анализом'},
+{n:'NetWatch EDR',c:48000,br:0.75,l:5,d:'корпоративный'},
+{n:'AegisX Suite',c:70000,br:0.82,l:6,d:'полный пакет'},
+{n:'ZeroDay Guard',c:95000,br:0.88,l:7,d:'ловит даже новое'},
+{n:'TitanSec Max',c:140000,br:0.93,l:8,d:'щит серверной'},
+{n:'QuantumDefend',c:200000,br:0.97,l:9,d:'почти непробиваемо'}]
+};
+const CATS=[['cpu','Процессоры'],['gpu','Видеокарты'],['ram','Память'],['psu','Блоки питания'],['nic','Сетевые карты'],['ssd','SSD'],['cooling','Охлаждение'],['av','Антивирусы']];
+const COOL_LABEL={air:'воздушное',water:'водяное'};
+
+const TASKS=[
+{id:'backup',n:'Бэкап данных',load:10,rw:600,t:10,xp:10,req:{},rec:'любая система'},
+{id:'vpn',n:'VPN-сервер',load:10,rw:800,t:10,xp:10,req:{nic:2},rec:'сеть 10 Гбит/с, любой CPU'},
+{id:'hosting',n:'Хостинг сайта',load:15,rw:900,t:12,xp:12,req:{ram:16},rec:'Core i3-10100F, 16 ГБ RAM'},
+{id:'compile',n:'Компиляция проекта',load:20,rw:1200,t:12,xp:15,req:{cpu:2},rec:'Core i5-10400+, 16 ГБ RAM'},
+{id:'db',n:'СУБД-кластер',load:25,rw:1500,t:15,xp:18,req:{ram:32},rec:'Ryzen 7 5800X, 32 ГБ RAM, NVMe 1 ТБ'},
+{id:'cdn',n:'CDN-хостинг',load:25,rw:1800,t:15,xp:20,req:{nic:25},rec:'сеть 25 Гбит/с'},
+{id:'render3d',n:'3D-рендер сцены',load:30,rw:1800,t:15,xp:20,req:{gpu:3,cpu:2},rec:'GTX 1660 Super, Ryzen 5 5600X, Air Cooler Tower 120'},
+{id:'webfarm',n:'Ферма веб-серверов',load:30,rw:2000,t:18,xp:22,req:{cpu:3,ram:32},rec:'Ryzen 9 5900X, 64 ГБ RAM'},
+{id:'video4k',n:'Рендер 4K-видео',load:35,rw:2800,t:20,xp:25,req:{gpu:3,ram:32},rec:'RTX 3080, 64 ГБ RAM, AIO 240mm'},
+{id:'streaming',n:'Стриминг 8K',load:35,rw:2800,t:20,xp:26,req:{gpu:3,nic:10,ram:32},rec:'RTX 3080, сеть 10 Гбит/с, 32 ГБ RAM'},
+{id:'gamedev',n:'Сборка игрового билда',load:35,rw:2600,t:20,xp:24,req:{gpu:2,cpu:4},rec:'RTX 3070, Ryzen 9 5900X, 64 ГБ RAM'},
+{id:'analytics',n:'Анализ больших данных',load:40,rw:3200,t:22,xp:28,req:{cpu:4,ram:64,lvl:3},rec:'Ryzen 9 7950X, 128 ГБ RAM, 4 ТБ NVMe'},
+{id:'mining',n:'Майнинг крипты',load:40,rw:2400,t:20,xp:22,req:{gpu:5,psu:1200},rec:'RTX 3080, БП 1200 Вт, AIO 360mm'},
+{id:'ml',n:'Обучение нейросети',load:45,rw:3500,t:25,xp:30,req:{gpu:5.5,ram:64,lvl:2},rec:'RTX 3090, Ryzen 9 7950X, 128 ГБ RAM'},
+{id:'science',n:'Молекулярная симуляция',load:45,rw:4200,t:25,xp:35,req:{cpu:5,ram:64,lvl:3},rec:'Threadripper 3960X, 128 ГБ RAM'},
+{id:'weather',n:'Метеомоделирование',load:50,rw:5200,t:30,xp:40,req:{cpu:7,ram:192,lvl:5},rec:'EPYC Milan 32C, 192 ГБ ECC'},
+{id:'render_film',n:'Рендер полнометражного фильма',load:50,rw:5000,t:30,xp:40,req:{gpu:8,ram:64,psu:1200,lvl:3},rec:'RTX 4090, Ryzen 9 7950X, 64 ГБ RAM, кастомный контур'},
+{id:'ai_infer',n:'Инференс LLM API',load:50,rw:5500,t:28,xp:42,req:{gpu:6,ram:128,nic:25,lvl:5},rec:'RTX 4070 Ti, 128 ГБ RAM, сеть 25 Гбит/с'},
+{id:'ai_finetune',n:'Дообучение LLM',load:55,rw:6000,t:30,xp:45,req:{gpu:6,ram:128,lvl:4},rec:'RTX 4070 Ti+, EPYC Milan, 128 ГБ ECC'},
+{id:'renderfarm',n:'Облачный рендер-парк',load:55,rw:6500,t:32,xp:48,req:{gpu:6,cpu:6,lvl:5},rec:'RTX 4080, EPYC Milan 32C, 256 ГБ ECC'},
+{id:'crypto_farm',n:'Крипто-ферма 24/7',load:60,rw:7000,t:35,xp:50,req:{gpu:8,psu:2000,lvl:4},rec:'RTX 4090, БП 2000 Вт, кастомный контур'},
+{id:'quantum_sim',n:'Квантовая симуляция',load:60,rw:8000,t:38,xp:60,req:{cpu:9,ram:512,gpu:7,lvl:6},rec:'EPYC Genoa 64C, RTX 4080, 512 ГБ ECC'},
+{id:'gpt_train',n:'Обучение GPT-модели',load:65,rw:9000,t:40,xp:70,req:{gpu:10,cpu:9,ram:512,psu:2400,lvl:6},rec:'H200 NVL, EPYC Turin 192C, 512 ГБ ECC, БП 2400 Вт, кастомный контур'},
+{id:'megaproject',n:'Мегапроект NASA-уровня',load:70,rw:12000,t:45,xp:90,req:{gpu:10,cpu:10,ram:512,psu:2800,lvl:7},rec:'H200 NVL, EPYC Turin 192C, 1 ТБ ECC, БП 3200 Вт'}
+];
+
+const UPGRADES=[
+{id:'fans',n:'Турбо-вентиляторы',d:'−4% к нагреву за уровень',base:4000,max:5},
+{id:'liqmetal',n:'Жидкий металл',d:'−3% к нагреву за уровень',base:6000,max:5},
+{id:'occ',n:'Разгон CPU',d:'+10% к мощности CPU за уровень',base:8000,max:5},
+{id:'ocg',n:'Разгон GPU',d:'+10% к мощности GPU за уровень',base:10000,max:5},
+{id:'sched',n:'Умный планировщик',d:'−5% к длительности задач',base:12000,max:5},
+{id:'pwr',n:'Управление питанием',d:'−5% к потреблению',base:9000,max:5},
+{id:'aitemp',n:'AI-контроль температур',d:'+2°C к порогу перегрева',base:15000,max:5},
+{id:'edu',n:'Программа обучения',d:'+8% XP за уровень',base:11000,max:5},
+{id:'prem',n:'Премиум-контракты',d:'+8% к наградам за уровень',base:13000,max:5},
+{id:'fw',n:'Файрвол Pro',d:'+8% к блокировке вирусов',base:10000,max:5}
+];
+
+const PROMOS={
+START100:{t:'money',v:1000,d:'+1 000 &#8381;'},
+ALICE5000:{t:'money',v:5000,d:'+5 000 &#8381;'},
+BOOST2500:{t:'money',v:2500,d:'+2 500 &#8381;'},
+SERVER10K:{t:'money',v:10000,d:'+10 000 &#8381;'},
+MEGA50K:{t:'money',v:50000,d:'+50 000 &#8381;'},
+RICH200K:{t:'money',v:200000,d:'+200 000 &#8381;'},
+XPBOOST:{t:'xp',v:100,d:'+100 XP'},
+LEVELUP:{t:'xp',v:400,d:'+400 XP'},
+GAMER25:{t:'disc',v:25,d:'−25% на следующую покупку'},
+HALF50:{t:'disc',v:50,d:'−50% на следующую покупку'},
+FREEDOM100:{t:'disc',v:100,d:'100% скидка на следующий товар'}
+};
+
+// ================= СОСТОЯНИЕ =================
+let S=null;
+function freshState(){
+ return {balance:10000,xp:0,level:1,upgrades:{},promosUsed:[],discount:null,systems:[mkSystem('SRV-01')],selected:0};
+}
+function mkSystem(name){
+ return {name,cpu:0,gpu:-1,ram:0,psu:0,nic:0,ssd:0,cool:0,av:0,
+   load:0,targetLoad:0,temp:32.0,phase:Math.random()*6.28,
+   overheatTicks:0,infected:0,on:true,active:[]};
+}
+function saveState(){try{const c=JSON.parse(JSON.stringify(S));c.systems.forEach(s=>{delete s.el;});localStorage.setItem('srv_admin_max',JSON.stringify(c));}catch(e){}}
+function loadState(){
+ try{const raw=localStorage.getItem('srv_admin_max');if(!raw)return false;
+  const d=JSON.parse(raw);if(!d||!d.systems||!d.systems.length)return false;
+  S=d;S.systems.forEach(s=>{s.el=null;s.phase=Math.random()*6.28;});
+  if(S.selected>=S.systems.length)S.selected=0;return true;
+ }catch(e){return false;}
+}
+function xpNeed(l){return 150*l;}
+function fmt(n){return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'\u2009')+' \u20BD';}
+function up(id){return S.upgrades[id]||0;}
+function effCpuP(s){return SHOP.cpu[s.cpu].p*(1+0.10*up('occ'));}
+function effGpuP(s){return s.gpu<0?0:SHOP.gpu[s.gpu].p*(1+0.10*up('ocg'));}
+function coolFactor(s){return SHOP.cooling[s.cool].f*(1-0.04*up('fans'))*(1-0.03*up('liqmetal'));}
+function overheatLimit(s){return 95+2*up('aitemp');}
+function drawWatts(s){
+ const base=90+effCpuP(s)*38+effGpuP(s)*62+SHOP.ram[s.ram].gb*0.35+SHOP.ssd[s.ssd].tb*2+SHOP.nic[s.nic].sp*1.5;
+ return base*(0.55+ (s.load/100)*0.9)*(1-0.05*up('pwr'));
+}
+
+// ================= КОНСОЛЬ =================
+const conOut=document.getElementById('consoleOut');
+function clog(html,cls){const d=document.createElement('div');if(cls)d.className=cls;d.innerHTML=html;conOut.appendChild(d);conOut.scrollTop=conOut.scrollHeight;while(conOut.children.length>200)conOut.removeChild(conOut.firstChild);}
+function handleCmd(raw){
+ const parts=raw.trim().split(/\s+/);const cmd=(parts[0]||'').toLowerCase();const arg=parts.slice(1).join(' ');
+ clog('<span class="p">admin@srv:~$</span> '+raw.replace(/</g,'&lt;'));
+ if(!cmd)return;
+ if(cmd==='help'){
+  clog('Команды: status, tasks, list, buy &lt;категория&gt; &lt;номер&gt;, add, remove, boot, scan, promo &lt;КОД&gt;, promolist, upgrades, reset');
+ }else if(cmd==='status'){
+  const s=cur();clog('Система: '+s.name+' | уровень '+S.level+' | баланс '+fmt(S.balance));
+  clog('Нагрузка '+Math.round(s.load)+'% | Температура '+s.temp.toFixed(1)+'\u00B0C | Питание '+Math.round(drawWatts(s))+'/'+SHOP.psu[s.psu].w+' Вт', s.temp>overheatLimit(s)?'warn':'');
+ }else if(cmd==='tasks'){
+  clog('Задачи: '+TASKS.map(t=>t.n).join(', '));
+ }else if(cmd==='list'){
+  CATS.forEach(c=>clog(c[1]+': '+SHOP[c[0]].map((it,i)=>(i+1)+'. '+it.n+' — '+fmt(it.c)).join(' | ')));
+ }else if(cmd==='buy'){
+  buyByConsole(arg);
+ }else if(cmd==='add'){
+  addSystem();
+ }else if(cmd==='remove'){
+  removeSystem();
+ }else if(cmd==='boot'){
+  const s=S.systems.find(x=>x.name.toLowerCase()===arg.toLowerCase())||cur();
+  s.on=true;s.overheatTicks=0;s.temp=32;clog('Система '+s.name+' запущена.','info');
+ }else if(cmd==='scan'){
+  const s=cur();if(s.infected>0){s.infected=0;clog('Вирус обезврежен на '+s.name+'.','info');}else clog('Угроз не обнаружено.','info');
+ }else if(cmd==='promo'){
+  applyPromo(arg.toUpperCase());
+ }else if(cmd==='promolist'){
+  clog(Object.keys(PROMOS).map(k=>k+' ('+PROMOS[k].d+')'+(S.promosUsed.includes(k)?' [использован]':'')).join(' | '));
+ }else if(cmd==='upgrades'){
+  clog(UPGRADES.map(u=>u.n+' ур.'+up(u.id)+'/'+u.max).join(' | '));
+ }else if(cmd==='reset'){
+  if(confirm('Сбросить весь прогресс?')){localStorage.removeItem('srv_admin_max');location.reload();}
+ }else{clog('Неизвестная команда. help — список.','err');}
+}
+function buyByConsole(arg){
+ const parts=arg.split(/\s+/);if(parts.length<2){clog('Формат: buy &lt;категория&gt; &lt;номер&gt;','err');return;}
+ const cat=parts[0].toLowerCase();const num=parseInt(parts[1],10);
+ if(!SHOP[cat]){clog('Нет такой категории: '+cat,'err');return;}
+ buyItem(cat,num-1);
+}
+document.getElementById('consoleIn').addEventListener('keydown',e=>{
+ if(e.key==='Enter'){handleCmd(e.target.value);e.target.value='';}});
+
+// ================= МАГАЗИН =================
+let shopCat='cpu';
+function renderShopTabs(){
+ const el=document.getElementById('shopTabs');el.innerHTML='';
+ CATS.forEach(c=>{const b=document.createElement('div');b.className='shop-tab'+(shopCat===c[0]?' active':'');b.textContent=c[1];
+  b.onclick=()=>{shopCat=c[0];renderShopTabs();renderShop();};el.appendChild(b);});
+}
+function cur(){return S.systems[S.selected];}
+function discountPrice(cost){
+ if(S.discount&&S.discount.v>=100)return 0;
+ return Math.round(cost*(1-(S.discount?S.discount.v:0)/100));
+}
+function buyItem(cat,idx){
+ const list=SHOP[cat];if(!list||idx<0||idx>=list.length)return;
+ const it=list[idx];const s=cur();
+ if(it.l>S.level){clog(it.n+' доступен с уровня '+it.l,'err');return;}
+ const price=discountPrice(it.c);
+ if(S.balance<price){clog('Не хватает денег: нужно '+fmt(price),'err');return;}
+ S.balance-=price;
+ if(S.discount){S.discount=null;}
+ if(cat==='cooling')s.cool=idx;else if(cat==='av')s.av=idx;else s[cat]=idx;
+ clog('Куплено: '+it.n+' ('+fmt(price)+') для '+s.name,'info');
+ renderAll();saveState();
+}
+function renderShop(){
+ const el=document.getElementById('shopGrid');el.innerHTML='';
+ document.getElementById('shopTarget').textContent='— покупка идёт в систему '+cur().name;
+ SHOP[shopCat].forEach((it,idx)=>{
+  const card=document.createElement('div');
+  const owned=(shopCat==='cooling'&&cur().cool===idx)||(shopCat==='av'&&cur().av===idx)||(!['cooling','av'].includes(shopCat)&&cur()[shopCat]===idx);
+  card.className='item-card'+(owned?' owned':'')+(it.l>S.level?' locked':'');
+  const price=discountPrice(it.c);
+  let pr=owned?'<span class="status-ok">установлено</span>':(price===0?'<span class="status-ok">БЕСПЛАТНО</span>':((S.discount&&S.discount.v>0)?'<span class="item-old">'+fmt(it.c)+'</span>':'')+fmt(price));
+  card.innerHTML='<span class="item-name">'+it.n+'</span><div class="item-price">'+pr+'</div><div class="item-desc">'+it.d+(it.l>1?'<br><span style="color:var(--purple);">ур. '+it.l+'+</span>':'')+'</div>';
+  const b=document.createElement('button');b.className='btn';b.textContent='Купить';
+  b.onclick=()=>buyItem(shopCat,idx);
+  card.appendChild(b);el.appendChild(card);
+ });
+}
+
+// ================= ПРОМОКОДЫ =================
+function applyPromo(code){
+ const out=document.getElementById('promoOut');
+ if(!code){out.innerHTML='<span class="status-err">Введите код.</span>';return;}
+ const p=PROMOS[code];
+ if(!p){out.innerHTML='<span class="status-err">Промокод «'+code.replace(/</g,'&lt;')+'» не найден.</span>';return;}
+ if(S.promosUsed.includes(code)){out.innerHTML='<span class="status-warn">Уже использован.</span>';return;}
+ S.promosUsed.push(code);
+ if(p.t==='money'){S.balance+=p.v;out.innerHTML='<span class="status-ok">+ '+fmt(p.v)+'</span>';clog('Промокод '+code+': +'+fmt(p.v),'info');}
+ else if(p.t==='xp'){S.xp+=p.v;out.innerHTML='<span class="status-ok">+ '+p.v+' XP</span>';clog('Промокод '+code+': +'+p.v+' XP','info');checkLevel();}
+ else if(p.t==='disc'){S.discount={v:p.v};out.innerHTML='<span class="status-ok">Скидка '+p.v+'% заряжена — сработает на следующей покупке.</span>';clog('Промокод '+code+': скидка '+p.v+'%','info');}
+ renderAll();saveState();
+}
+document.getElementById('promoBtn').onclick=()=>{applyPromo(document.getElementById('promoInput').value.trim().toUpperCase());document.getElementById('promoInput').value='';};
+document.getElementById('promoListBtn').onclick=()=>{
+ document.getElementById('promoOut').innerHTML=Object.keys(PROMOS).map(k=>'<div style="margin-bottom:2px;"><b>'+k+'</b> — '+PROMOS[k].d+(S.promosUsed.includes(k)?' <span class="status-err">[использован]</span>':'')+'</div>').join('');
+};
+
+// ================= ПРОКАЧКА =================
+function checkLevel(){
+ while(S.xp>=xpNeed(S.level)){S.xp-=xpNeed(S.level);S.level++;
+  clog('&#127881; Новый уровень: '+S.level+'! Открыто новое железо и задачи.','info');}
+}
+function upCost(u){return Math.round(u.base*Math.pow(1.6,up(u.id)));}
+function renderUpgrades(){
+ const el=document.getElementById('upgGrid');el.innerHTML='';
+ UPGRADES.forEach(u=>{
+  const card=document.createElement('div');card.className='item-card';
+  const maxed=up(u.id)>=u.max;
+  card.innerHTML='<span class="item-name">'+u.n+' <span class="status-ok">ур.'+up(u.id)+'/'+u.max+'</span></span><div class="item-desc">'+u.d+'</div><div class="item-price">'+(maxed?'MAX':fmt(upCost(u)))+'</div>';
+  const b=document.createElement('button');b.className='btn';b.textContent=maxed?'Максимум':'Улучшить';
+  b.disabled=maxed||S.balance<upCost(u);
+  b.onclick=()=>{if(S.balance<upCost(u))return;S.balance-=upCost(u);S.upgrades[u.id]=up(u.id)+1;clog('Апгрейд: '+u.n+' → ур.'+up(u.id),'info');renderAll();saveState();};
+  card.appendChild(b);el.appendChild(card);
+ });
+}
+
+// ================= ЗАДАЧИ =================
+function reqCheck(task,s){
+ const bad=[];
+ if(task.req.lvl&&S.level<task.req.lvl)bad.push('нужен уровень '+task.req.lvl+'+');
+ if(task.req.gpu&&effGpuP(s)<task.req.gpu)bad.push('нужна видеокарта мощнее (перф '+task.req.gpu+'+)');
+ if(task.req.cpu&&effCpuP(s)<task.req.cpu)bad.push('нужен процессор мощнее (перф '+task.req.cpu+'+)');
+ if(task.req.ram&&SHOP.ram[s.ram].gb<task.req.ram)bad.push('нужно '+task.req.ram+' ГБ RAM');
+ if(task.req.psu&&SHOP.psu[s.psu].w<task.req.psu)bad.push('нужен БП от '+task.req.psu+' Вт');
+ if(task.req.nic&&SHOP.nic[s.nic].sp<task.req.nic)bad.push('нужна сеть от '+task.req.nic+' Гбит/с');
+ return bad;
+}
+function renderTasks(){
+ const s=cur();
+ const av=document.getElementById('activeTasks');av.innerHTML='';
+ s.active.forEach(at=>{
+  const d=document.createElement('div');d.className='active-task';
+  d.innerHTML='<div class="task-top"><span class="task-name">'+at.n+'</span><span class="task-meta">'+Math.round(at.prog*100)+'%</span></div><div class="task-prog"><div class="bar-bg"><div class="bar-fill" style="width:'+(at.prog*100)+'%;background:var(--green);"></div></div></div>';
+  av.appendChild(d);
+ });
+ const box=document.getElementById('taskOptions');box.innerHTML='';
+ TASKS.forEach(task=>{
+  const bad=reqCheck(task,s);const running=s.active.some(a=>a.id===task.id);
+  const card=document.createElement('div');card.className='task-card';
+  const reward=Math.round(task.rw*(1+0.08*(S.level-1))*(1+0.08*up('prem')));
+  const xpGain=Math.round(task.xp*(1+0.08*up('edu')));
+  card.innerHTML='<div class="task-top"><span class="task-name">'+task.n+(running?' <span class="status-warn">[выполняется]</span>':'')+'</span><span class="task-meta">'+fmt(reward)+' + '+xpGain+' XP</span></div>'
+   +'<div class="task-rec">Рекомендуется: '+task.rec+'</div>'
+   +(bad.length?'<div class="task-req-bad">Не хватает: '+bad.join('; ')+'</div>':'');
+  if(!bad.length&&!running){
+   const b=document.createElement('button');b.className='btn';b.textContent='Запустить';
+   b.onclick=()=>startTask(task);card.appendChild(b);
+  }
+  box.appendChild(card);
+ });
+}
+function startTask(task){
+ const s=cur();const bad=reqCheck(task,s);if(bad.length)return;
+ const reward=Math.round(task.rw*(1+0.08*(S.level-1))*(1+0.08*up('prem')));
+ const xpGain=Math.round(task.xp*(1+0.08*up('edu')));
+ const dur=Math.max(3,Math.round(task.t*(1-0.05*up('sched'))));
+ s.active.push({id:task.id,n:task.n,prog:0,load:task.load,dur,reward,xp:xpGain});
+ s.targetLoad=Math.min(100,s.active.reduce((a,x)=>a+x.load,0));
+ clog('Запущено: '+task.n+' ('+dur+' с)','info');
+ renderTasks();saveState();
+}
+
+// ================= СИСТЕМЫ =================
+function addSystem(){
+ if(S.balance<5000){clog('Новая система стоит 5 000 \u20BD','err');return;}
+ S.balance-=5000;const n='SRV-0'+(S.systems.length+1);
+ S.systems.push(mkSystem(n));S.selected=S.systems.length-1;
+ clog('Добавлена система '+n,'info');renderAll();saveState();
+}
+function removeSystem(){
+ if(S.systems.length<=1){clog('Нельзя удалить последнюю систему','err');return;}
+ if(!confirm('Удалить систему '+cur().name+'?'))return;
+ S.systems.splice(S.selected,1);S.selected=0;renderAll();saveState();
+}
+document.getElementById('addSysBtn').onclick=addSystem;
+document.getElementById('resetBtn').onclick=()=>{
+ if(confirm('Сбросить весь прогресс до начала?')){localStorage.removeItem('srv_admin_max');location.reload();}
+};
+function specLine(s){
+ const g=s.gpu>=0?SHOP.gpu[s.gpu].n+' + ':'';
+ return g+SHOP.cpu[s.cpu].n+' &middot; '+SHOP.ram[s.ram].gb+' ГБ &middot; БП '+SHOP.psu[s.psu].w+' Вт &middot; '+SHOP.nic[s.nic].sp+' Гбит/с &middot; SSD '+SHOP.ssd[s.ssd].n+' &middot; '+SHOP.cooling[s.cool].n+' ('+COOL_LABEL[SHOP.cooling[s.cool].t]+')';
+}
+function buildCard(s,idx){
+ const card=document.createElement('div');card.className='sys-card'+(idx===S.selected?' selected':'');
+ card.innerHTML='<div class="sys-head"><span class="sys-name">'+s.name+(s.infected?' <span class="status-err">&#9888; вирус</span>':'')+(!s.on?' <span class="status-err">[выключен]</span>':'')+'</span>'
+ +'<span style="display:flex;gap:6px;"><button class="btn sel">Выбрать</button><button class="btn danger del">Удалить</button></span></div>'
+ +'<div class="specs">'+specLine(s)+'</div>'
+ +'<div class="rack"><div class="rack-inner">'
+  +[1,2,3,4,5].map(i=>'<div class="unit u'+i+'"><div class="fan"></div><div class="drive"><div class="drive-bit" style="left:'+(i*17)%80+'%;animation-delay:'+(i*0.3)+'s;"></div></div><div class="led"></div></div>').join('')
+ +'</div></div>'
+ +'<div class="meter-row">'
+  +'<div class="meter"><div class="meter-label"><span>Нагрузка</span><span class="mload"></span></div><div class="bar-bg"><div class="bar-fill mloadbar"></div></div></div>'
+  +'<div class="meter"><div class="meter-label"><span>Температура</span><span class="mtemp"></span></div><div class="bar-bg"><div class="bar-fill mtempbar"></div></div></div>'
+  +'<div class="meter"><div class="meter-label"><span>Питание</span><span class="mpwr"></span></div><div class="bar-bg"><div class="bar-fill mpwrbar" style="background:var(--purple);"></div></div></div>'
+ +'</div><div class="warn-line"></div>';
+ card.querySelector('.sel').onclick=e=>{e.stopPropagation();S.selected=idx;renderAll();saveState();};
+ card.querySelector('.del').onclick=e=>{e.stopPropagation();S.selected=idx;removeSystem();};
+ card.onclick=()=>{S.selected=idx;renderAll();saveState();};
+ s.el={card,
+  loadTxt:card.querySelector('.mload'),loadBar:card.querySelector('.mloadbar'),
+  tempTxt:card.querySelector('.mtemp'),tempBar:card.querySelector('.mtempbar'),
+  pwrTxt:card.querySelector('.mpwr'),pwrBar:card.querySelector('.mpwrbar'),
+  leds:card.querySelectorAll('.led'),fans:card.querySelectorAll('.fan'),warn:card.querySelector('.warn-line'),specs:card.querySelector('.specs')};
+ return card;
+}
+function renderSystems(){
+ const col=document.getElementById('systemsCol');col.innerHTML='';
+ S.systems.forEach((s,i)=>col.appendChild(buildCard(s,i)));
+}
+function ledColor(s){
+ if(s.infected)return'var(--purple)';
+ const t=s.temp;
+ if(!s.on)return'#444c5c';
+ if(t>=overheatLimit(s))return'var(--red)';
+ if(t>=85)return'var(--orange)';
+ if(t>=70)return'var(--yellow)';
+ return'var(--green)';
+}
+function updateSystemUI(s){
+ if(!s.el)return;
+ const l=Math.round(s.load);
+ s.el.loadTxt.textContent=l+'%';
+ s.el.loadBar.style.width=l+'%';
+ s.el.loadBar.style.background=l>85?'var(--red)':l>60?'var(--yellow)':'var(--green)';
+ const t=s.temp;
+ s.el.tempTxt.textContent=t.toFixed(1)+'\u00B0C';
+ s.el.tempBar.style.width=Math.min(100,t/105*100)+'%';
+ s.el.tempBar.style.background=t>=overheatLimit(s)?'var(--red)':t>=85?'var(--orange)':t>=70?'var(--yellow)':'var(--green)';
+ const w=drawWatts(s),cap=SHOP.psu[s.psu].w;
+ s.el.pwrTxt.textContent=Math.round(w)+'/'+cap+' Вт';
+ s.el.pwrBar.style.width=Math.min(100,w/cap*100)+'%';
+ s.el.pwrBar.style.background=w>cap?'var(--red)':w>cap*0.9?'var(--yellow)':'var(--purple)';
+ const c=ledColor(s);
+ s.el.leds.forEach(led=>{led.style.background=c;led.style.boxShadow='0 0 8px '+c;});
+ const speed=Math.max(0.25,(1-s.load/130))*(s.infected?0.4:1);
+ s.el.fans.forEach(f=>f.style.animationDuration=speed.toFixed(2)+'s');
+ const dl=drawWatts(s);
+ let msg='';
+ if(dl>cap)msg='<span class="status-err">Перегрузка БП: '+Math.round(dl)+' Вт &gt; '+cap+' Вт — риск отказа!</span>';
+ else if(t>overheatLimit(s))msg='<span class="status-err">Перегрев! Кулер не справляется.</span>';
+ else if(dl>cap*0.9)msg='<span class="status-warn">БП близок к пределу.</span>';
+ s.el.warn.innerHTML=msg;
+}
+
+// ================= ГЛАВНЫЙ ТИК =================
+let overheatLogGuard=0;
+function tick(){
+ let dirty=false;
+ S.systems.forEach(s=>{
+  // целевая нагрузка из активных задач
+  s.targetLoad=Math.min(100,s.active.reduce((a,x)=>a+x.load,0));
+  // плавная нагрузка + постоянные микро-колебания (никогда не стабильна)
+  s.load+=(s.targetLoad-s.load)*0.08;
+  s.load=Math.max(0,Math.min(100,s.load+(Math.random()-0.5)*0.8+Math.sin(Date.now()/900+s.phase)*0.25));
+  // ЦЕЛЕВАЯ температура: зависит от нагрузки, мощности и охлаждения
+  const target=Math.max(28,Math.min(108,30+(s.load/100)*(10+effCpuP(s)*6+effGpuP(s)*9)*coolFactor(s)));
+  // плавный разгон к цели + живое «дыхание» температуры
+  s.temp+=(target-s.temp)*0.07;
+  s.temp+=Math.sin(Date.now()/700+s.phase)*0.18+(Math.random()-0.5)*0.35;
+  s.temp=Math.max(24,Math.min(110,s.temp));
+  // задачи
+  const throttle=s.temp>overheatLimit(s)?0.5:1;
+  s.active.forEach(at=>{at.prog+=throttle/at.dur;});
+  const done=s.active.filter(at=>at.prog>=1);
+  if(done.length){
+   s.active=s.active.filter(at=>at.prog<1);
+   done.forEach(at=>{
+    S.balance+=at.reward;S.xp+=at.xp;
+    clog('&#9989; '+at.n+': +'+fmt(at.reward)+' и +'+at.xp+' XP','info');
+    dirty=true;
+   });
+   checkLevel();
+  }
+  // перегрев
+  if(s.on&&s.temp>overheatLimit(s)){
+   s.overheatTicks++;
+   if(s.overheatTicks>5&&Math.random()<0.5){
+    s.on=false;s.active=[];s.load=0;s.targetLoad=0;
+    clog('&#128293; '+s.name+' перегрелся ('+s.temp.toFixed(1)+'\u00B0C) и выключился. Активные задачи потеряны! boot '+s.name,'err');
+    s.overheatTicks=0;dirty=true;
+   }
+  }else s.overheatTicks=0;
+  // вирусы
+  if(s.on&&Math.random()<0.006){
+   const br=Math.min(0.99,SHOP.av[s.av].br+0.08*up('fw'));
+   if(Math.random()<br){if(Math.random()<0.15)clog('🛡 '+SHOP.av[s.av].n+' заблокировал атаку на '+s.name,'info');}
+   else{s.infected=8;clog('&#9888; Вирус на '+s.name+'! Команда scan — лечение.','err');dirty=true;}
+  }
+  if(s.infected>0){s.infected--;S.balance=Math.max(0,S.balance-40);dirty=true;}
+  // пассивный доход от сети
+  const pas=SHOP.nic[s.nic].sp*8*(1+0.08*up('prem'));
+  if(s.on&&pas>0){S.balance+=pas/12;dirty=true;}
+  updateSystemUI(s);
+ });
+ // верхняя панель
+ document.getElementById('balance').textContent=fmt(S.balance);
+ document.getElementById('levelBadge').textContent='Ур. '+S.level;
+ document.getElementById('xpText').textContent=S.xp+' / '+xpNeed(S.level)+' XP';
+ document.getElementById('xpFill').style.width=(S.xp/xpNeed(S.level)*100)+'%';
+ const di=document.getElementById('discountInfo');
+ di.textContent=S.discount?('Скидка '+S.discount.v+'% активна!'):'';
+ if(dirty){renderTasks();renderShop();renderUpgrades();}
+}
+function renderAll(){renderSystems();S.systems.forEach(updateSystemUI);renderTasks();renderShop();renderUpgrades();
+ document.getElementById('balance').textContent=fmt(S.balance);
+ document.getElementById('levelBadge').textContent='Ур. '+S.level;
+ document.getElementById('xpText').textContent=S.xp+' / '+xpNeed(S.level)+' XP';
+ document.getElementById('xpFill').style.width=(S.xp/xpNeed(S.level)*100)+'%';
+}
+// ================= СТАРТ =================
+if(!loadState())S=freshState();
+renderShopTabs();renderAll();
+clog('Добро пожаловать! help — список команд. Промокоды: кнопка под магазином или promo КОД.','info');
+setInterval(tick,1000);
+setInterval(saveState,5000);
+</script>
+</body>
+</html>
